@@ -53,8 +53,10 @@
 #import "RMQErrors.h"
 #import "RMQSynchronizedMutableDictionary.h"
 #import "RMQPKCS12CertificateConverter.h"
+#import "RMQTCPSocketConfigurator.h"
 
 long writeTag = UINT32_MAX + 1;
+RMQTCPSocketConfigurator noOpSocketConfigurator = ^(GCDAsyncSocket* _socket) {};
 
 @interface RMQTCPSocketTransport ()
 
@@ -75,18 +77,34 @@ long writeTag = UINT32_MAX + 1;
 - (instancetype)initWithHost:(NSString *)host
                         port:(NSNumber *)port
                   tlsOptions:(RMQTLSOptions *)tlsOptions
-             callbackStorage:(id)callbacks {
+             callbackStorage:(id)callbacks
+          socketConfigurator:(RMQTCPSocketConfigurator)socketConfigurator {
     self = [super init];
     if (self) {
         self.socket = [[GCDAsyncSocket alloc] initWithDelegate:self
                                                  delegateQueue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0)];
+        // see rabbitmq/rabbitmq-objc-client#138
+        self.socket.IPv4PreferredOverIPv6 = NO;
         self.host = host;
         self.port = port;
         self.tlsOptions = tlsOptions;
         self.callbacks = callbacks;
         self.connectTimeout = @2;
+        
+        socketConfigurator(self.socket);
     }
     return self;
+}
+
+- (instancetype)initWithHost:(NSString *)host
+                        port:(NSNumber *)port
+                  tlsOptions:(RMQTLSOptions *)tlsOptions
+          socketConfigurator:(RMQTCPSocketConfigurator)socketConfigurator {
+    return [self initWithHost:host
+                        port:port
+                  tlsOptions:tlsOptions
+             callbackStorage:[RMQSynchronizedMutableDictionary new]
+          socketConfigurator:socketConfigurator];
 }
 
 - (instancetype)initWithHost:(NSString *)host
@@ -95,7 +113,8 @@ long writeTag = UINT32_MAX + 1;
     return [self initWithHost:host
                          port:port
                    tlsOptions:tlsOptions
-              callbackStorage:[RMQSynchronizedMutableDictionary new]];
+              callbackStorage:[RMQSynchronizedMutableDictionary new]
+           socketConfigurator:noOpSocketConfigurator];
 }
 
 - (instancetype)init

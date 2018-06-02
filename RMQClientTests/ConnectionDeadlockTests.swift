@@ -1,3 +1,5 @@
+//  Copyright © 2018 Pivotal . All rights reserved.
+//
 // This source code is dual-licensed under the Mozilla Public License ("MPL"),
 // version 1.1 and the Apache License ("ASL"), version 2.0.
 //
@@ -51,16 +53,26 @@
 
 import XCTest
 
-class RMQProcessInfoNameGeneratorTest: XCTestCase {
-
-    func testGeneratesNamesWithProvidedPrefix() {
-        let generator = RMQProcessInfoNameGenerator()
-        let name1 = generator.generate(withPrefix: "foo")
-        let name2 = generator.generate(withPrefix: "foo")
-
-        XCTAssertTrue(name1!.starts(with: "foo"))
-        XCTAssertTrue(name2!.starts(with: "foo"))
-        XCTAssertNotEqual(name1, name2)
+class ConnectionDeadlockTests: XCTestCase {
+    
+    func testCallingCloseWhileDisconnected() {
+        
+        let expection = expectation(description: "Should not encounter deadlock.")
+        
+        DispatchQueue(label: "test.queue").async {
+            /// a server endpoint that's assumed to be unavailable
+            let uri = "amqp://127.0.0.1:5555"
+            let conn = RMQConnection(uri: uri, delegate: RMQConnectionDelegateLogger())
+            conn.start()
+            conn.blockingClose()
+            
+            /// will be reached if blockingClose above doesn't
+            /// run into a deadlock
+            expection.fulfill()
+        }
+        
+        waitForExpectations(timeout: 60) { (error) in
+            XCTAssertNil(error, "Should have no error")
+        }
     }
-
 }

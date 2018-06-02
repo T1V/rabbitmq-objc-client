@@ -49,18 +49,10 @@
 // under either the MPL or the ASL License.
 // ---------------------------------------------------------------------------
 
-import XCTest
+#import <Foundation/Foundation.h>
+#import "RMQTransport.h"
+#if defined(__has_feature) && __has_feature(modules)
+@import CocoaAsyncSocket;
+#endif
 
-class RMQProcessInfoNameGeneratorTest: XCTestCase {
-
-    func testGeneratesNamesWithProvidedPrefix() {
-        let generator = RMQProcessInfoNameGenerator()
-        let name1 = generator.generate(withPrefix: "foo")
-        let name2 = generator.generate(withPrefix: "foo")
-
-        XCTAssertTrue(name1!.starts(with: "foo"))
-        XCTAssertTrue(name2!.starts(with: "foo"))
-        XCTAssertNotEqual(name1, name2)
-    }
-
-}
+typedef void (^RMQTCPSocketConfigurator)(GCDAsyncSocket * _Nonnull socket);

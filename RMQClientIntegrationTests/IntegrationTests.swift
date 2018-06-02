@@ -100,7 +100,7 @@ class IntegrationTests: XCTestCase {
             redelivered: false,
             exchangeName: src.name,
             routingKey: "",
-            properties: RMQBasicProperties.defaultProperties()
+            properties: RMQBasicProperties.defaultProperties() as! [RMQValue & RMQBasicValue]
         )
         var actual: RMQMessage?
         q.pop { m in
@@ -153,7 +153,7 @@ class IntegrationTests: XCTestCase {
         q.publish(body)
 
         XCTAssertEqual(.success,
-                       semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(10)),
+                       semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(30)),
                        "Timed out waiting for message")
 
         XCTAssertEqual(1, delivered!.deliveryTag)
@@ -194,7 +194,7 @@ class IntegrationTests: XCTestCase {
                 RMQArray([RMQTable(["abc": RMQShort(123)])])
                 ]),
             ]
-        let headers = RMQBasicHeaders(headerDict)
+        let headers = RMQBasicHeaders(headerDict as! [String : RMQValue & RMQFieldValue])
 
         let props: [RMQValue] = [
             RMQBasicAppId("rmqclient.example"),
@@ -206,7 +206,7 @@ class IntegrationTests: XCTestCase {
             RMQBasicCorrelationId("r-1"),
             RMQBasicMessageId("m-1"),
             ]
-        q.publish("a message".data(using: String.Encoding.utf8), properties: props, options: [])
+        q.publish("a message".data(using: String.Encoding.utf8), properties: props as! [RMQValue & RMQBasicValue], options: [])
 
         XCTAssertEqual(.success,
                        semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(10)),
@@ -215,8 +215,7 @@ class IntegrationTests: XCTestCase {
         XCTAssertEqual("application/octet-stream",          delivered!.contentType())
         XCTAssertEqual(8,                                   delivered!.priority())
         XCTAssertEqual(headerDict,                          delivered!.headers())
-        XCTAssertEqualWithAccuracy(date.timeIntervalSinceReferenceDate,
-                                                            delivered!.timestamp().timeIntervalSinceReferenceDate, accuracy: 1)
+        XCTAssertEqual(date.timeIntervalSinceReferenceDate, delivered!.timestamp().timeIntervalSinceReferenceDate, accuracy: 1)
         XCTAssertEqual("kinda.checkin",                     delivered!.messageType())
         XCTAssertEqual("a.sender",                          delivered!.replyTo())
         XCTAssertEqual("r-1",                               delivered!.correlationID())
@@ -224,7 +223,7 @@ class IntegrationTests: XCTestCase {
         XCTAssertEqual("rmqclient.example",                 delivered!.appID())
 
         let consumerTag = delivered!.consumerTag
-        XCTAssertEqual("rmq-objc-client.gen-",              consumerTag?.substring(to: (consumerTag?.index((consumerTag?.startIndex)!, offsetBy: 20))!))
+        XCTAssertTrue(consumerTag!.starts(with: "rmq-objc-client.gen-"))
         XCTAssertEqual(1,                                   delivered!.deliveryTag)
         XCTAssertEqual(q.name,                              delivered!.routingKey)
         XCTAssertEqual("",                                  delivered!.exchangeName)

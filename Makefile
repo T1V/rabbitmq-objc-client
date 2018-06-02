@@ -1,8 +1,21 @@
 tests: tests_iOS tests_OSX
 
-iOS_VERSION := 10.3.1
+iOS_VERSION := 11.4
 
 RABBITMQCTL := /usr/local/sbin/rabbitmqctl
+RABBITMQ_PLUGINS := /usr/local/sbin/rabbitmq-plugins
+
+tests: tests_iOS tests_OSX
+
+test_ios: tests_iOS
+
+tests_ios: tests_iOS
+
+test_osx: tests_OSX
+
+tests_osx: tests_OSX
+
+tests_macos: tests_OSX
 
 tests_iOS: test_dependencies
 	set -o pipefail && \
@@ -29,6 +42,12 @@ bootstrap:
 test_user:
 	$(RABBITMQCTL) add_user "O=client,CN=guest" bunnies && \
 	  $(RABBITMQCTL) set_permissions "O=client,CN=guest" ".*" ".*" ".*"
+
+before_build:
+	$(RABBITMQ_PLUGINS) enable rabbitmq_management
+	$(RABBITMQCTL) eval 'supervisor2:terminate_child(rabbit_mgmt_sup_sup, rabbit_mgmt_sup), application:set_env(rabbitmq_management,       sample_retention_policies, [{global, [{605, 1}]}, {basic, [{605, 1}]}, {detailed, [{10, 1}]}]), rabbit_mgmt_sup_sup:start_child().'
+	$(RABBITMQCTL) eval 'supervisor2:terminate_child(rabbit_mgmt_agent_sup_sup, rabbit_mgmt_agent_sup), application:set_env(rabbitmq_management_agent, sample_retention_policies, [{global, [{605, 1}]}, {basic, [{605, 1}]}, {detailed, [{10, 1}]}]), rabbit_mgmt_agent_sup_sup:start_child().'
+
 
 licenses:
 	bin/add-license rb '#' license-header-ruby.txt codegen/ && \

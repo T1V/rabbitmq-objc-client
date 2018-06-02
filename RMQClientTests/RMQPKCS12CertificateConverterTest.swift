@@ -55,21 +55,15 @@ class RMQPKCS12CertificateConverterTest: XCTestCase {
 
     func testConvertNSDataToArrayOfCertificates() {
         let p12 = CertificateFixtures.guestBunniesP12()
-        let converter = RMQPKCS12CertificateConverter(data: p12 as Data!, password: "bunnies")
+        let converter = RMQPKCS12CertificateConverter(data: p12 as Data?, password: "bunnies")
         let result = try! converter?.certificates()
 
         XCTAssertEqual(1, result?.count)
-        let description = (result?.first! as AnyObject).description()
-
-        #if os(iOS)
-        XCTAssert(description?.range(of: "SecIdentityRef") != nil,
-                  "Didn't get SecIdentityRef as first item in cert array")
-        #endif
     }
 
     func testIncorrectPasswordThrowsError() {
         let p12 = CertificateFixtures.guestBunniesP12()
-        let converter = RMQPKCS12CertificateConverter(data: p12 as Data!, password: "hares")
+        let converter = RMQPKCS12CertificateConverter(data: p12 as Data?, password: "hares")
 
         #if os(iOS)
         XCTAssertThrowsError(try converter?.certificates()) { (error) in

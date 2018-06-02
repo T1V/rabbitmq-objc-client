@@ -55,6 +55,9 @@ import CocoaAsyncSocket
 class RMQTCPSocketTransportTest: XCTestCase {
     static let noTLS = RMQTLSOptions.fromURI("amqp://localhost")
     let noTLS = RMQTLSOptions.fromURI("amqp://localhost")
+    let noOpSocketConfigurator = { (_socket: GCDAsyncSocket?) -> Void in
+      // no-op
+    }
 
     func testObeysContract() {
         RMQTransportContract(createTransport()).check()
@@ -65,7 +68,8 @@ class RMQTCPSocketTransportTest: XCTestCase {
         let transport = RMQTCPSocketTransport(host: "127.0.0.1",
                                               port: 5672,
                                               tlsOptions: noTLS,
-                                              callbackStorage: callbacks)
+                                              callbackStorage: callbacks,
+                                              socketConfigurator: noOpSocketConfigurator)
         var receivedData: Data?
         transport.readFrame { data in
             receivedData = data
@@ -83,7 +87,7 @@ class RMQTCPSocketTransportTest: XCTestCase {
         let transport = createTransport()
         let error = NSError(domain: "", code: 0, userInfo: [:])
         transport.socketDidDisconnect(GCDAsyncSocket(), withError: error)
-        
+
         XCTAssertFalse(transport.isConnected())
     }
 
@@ -91,7 +95,8 @@ class RMQTCPSocketTransportTest: XCTestCase {
         let callbacks = [:] as NSMutableDictionary
         let transport = RMQTCPSocketTransport(host: "127.0.0.1", port: 5672,
                                               tlsOptions: noTLS,
-                                              callbackStorage: callbacks)
+                                              callbackStorage: callbacks,
+                                              socketConfigurator: noOpSocketConfigurator)
 
         try! transport.connect()
         XCTAssert(TestHelper.pollUntil { return transport.isConnected() }, "couldn't connect")
@@ -110,23 +115,51 @@ class RMQTCPSocketTransportTest: XCTestCase {
         let delegate = TransportDelegateSpy()
         let transport = RMQTCPSocketTransport(host: "127.0.0.1", port: 123456,
                                               tlsOptions: noTLS,
-                                              callbackStorage: callbacks)
+                                              callbackStorage: callbacks,
+                                              socketConfigurator: noOpSocketConfigurator)
 
         transport.delegate = delegate
         try! transport.connect()
 
         TestHelper.pollUntil { delegate.lastDisconnectError != nil }
 
-        XCTAssertEqual(NSPOSIXErrorDomain, (delegate.lastDisconnectError as! NSError).domain)
+        XCTAssertEqual(NSPOSIXErrorDomain, (delegate.lastDisconnectError! as NSError).domain)
     }
 
     func testExtendsReadWhenReadTimesOut() {
         let callbacks = RMQSynchronizedMutableDictionary()
         let transport = RMQTCPSocketTransport(host: "127.0.0.1", port: 123456,
                                               tlsOptions: noTLS,
-                                              callbackStorage: callbacks)
+                                              callbackStorage: callbacks,
+                                              socketConfigurator: noOpSocketConfigurator)
         let timeoutExtension = transport.socket(GCDAsyncSocket(), shouldTimeoutReadWithTag: 123, elapsed: 123, bytesDone: 999)
         XCTAssert(timeoutExtension > 0)
+    }
+
+    func doTestConnectsToHostWithoutTLS(host: String) {
+        let semaphore = DispatchSemaphore(value: 0)
+        let transport = RMQTCPSocketTransport(host: host, port: 5672, tlsOptions: noTLS)
+        try! transport.connect()
+        transport.write(RMQProtocolHeader().amqEncoded())
+
+        var receivedData: Data?
+        transport.readFrame { data in
+            receivedData = data
+            semaphore.signal()
+        }
+
+        XCTAssertEqual(.success, semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(2)),
+                       "Timed out waiting for read")
+        let parser = RMQParser(data: receivedData!)
+        XCTAssert(RMQFrame(parser: parser).payload.isKind(of: RMQConnectionStart.self))
+    }
+
+    func testConnectsOverIPV4() {
+        doTestConnectsToHostWithoutTLS(host: "127.0.0.1")
+    }
+
+    func testConnectsOverIPV6() {
+        doTestConnectsToHostWithoutTLS(host: "::1")
     }
 
     func testConnectsViaTLS() {

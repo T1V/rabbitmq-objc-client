@@ -73,7 +73,7 @@
     func addPublication() -> NSNumber! {
         let beforeIncrease = publicationCount
         publicationCount += 1
-        return beforeIncrease as NSNumber!
+        return beforeIncrease as NSNumber
     }
 
     func addCallback(withTimeout timeoutInSecs: NSNumber!, callback: RMQConfirmationCallback!) {
