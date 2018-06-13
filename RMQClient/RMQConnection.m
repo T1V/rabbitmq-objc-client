@@ -405,7 +405,8 @@ NSInteger const RMQChannelLimit = 65535;
               ^{
                   self.transport.delegate = nil;
                   [self.transport close];
-              }];
+              },
+              ^{[self closeCompleted];}];
 }
 
 
@@ -417,7 +418,9 @@ NSInteger const RMQChannelLimit = 65535;
               ^{
                   self.transport.delegate = nil;
                   [self.transport close];
-              }];
+              },
+              ^{[self closeCompleted];}
+              ];
 }
 
 - (void)closeAllUserChannels {
@@ -435,6 +438,14 @@ NSInteger const RMQChannelLimit = 65535;
 
 - (id<RMQConnectionRecovery>)recovery {
     return self.config.recovery;
+}
+
+- (void)closeCompleted
+{
+  NSError *error = [NSError errorWithDomain:RMQErrorDomain
+                                       code:1010
+                                   userInfo:@{NSLocalizedDescriptionKey: @"Close completed successfully"}];
+  [self.delegate connection:self disconnectedWithError:error];
 }
 
 @end
