@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -55,19 +55,19 @@ class ChannelAllocationTest: XCTestCase {
     let allocationsPerQueue = 30000
 
     func allocateAll(_ allocator: RMQChannelAllocator) {
-        for _ in 1...RMQChannelLimit {
+        for _ in 1...RMQChannelMaxDefault {
             allocator.allocate()
         }
     }
 
     func testChannelGetsNegativeOneChannelNumberWhenOutOfChannelNumbers() {
-        let allocator = RMQMultipleChannelAllocator(channelSyncTimeout: 2)
+        let allocator = RMQMultipleChannelAllocator(maxCapacity: 127, channelSyncTimeout: 2)
         allocateAll(allocator!)
         XCTAssertEqual(-1, allocator?.allocate().channelNumber)
     }
 
     func testChannelGetsAFreedChannelNumberIfOtherwiseOutOfChannelNumbers() {
-        let allocator = RMQMultipleChannelAllocator(channelSyncTimeout: 2)
+        let allocator = RMQMultipleChannelAllocator(maxCapacity: 127, channelSyncTimeout: 2)
         allocateAll(allocator!)
         allocator?.releaseChannelNumber(2)
         XCTAssertEqual(2, allocator?.allocate().channelNumber)
@@ -75,7 +75,7 @@ class ChannelAllocationTest: XCTestCase {
     }
 
     func testAllocatedChannelsCanBeRead() {
-        let allocator = RMQMultipleChannelAllocator(channelSyncTimeout: 2)
+        let allocator = RMQMultipleChannelAllocator(maxCapacity: 127, channelSyncTimeout: 2)
         _ = allocator?.allocate()
         _ = allocator?.allocate()
         _ = allocator?.allocate()
@@ -85,7 +85,7 @@ class ChannelAllocationTest: XCTestCase {
     }
 
     func testNumbersAreNotDoubleAllocated() {
-        let allocator   = RMQMultipleChannelAllocator(channelSyncTimeout: 2)
+        let allocator   = RMQMultipleChannelAllocator(maxCapacity: 127, channelSyncTimeout: 2)
         var channelSet1 = Set<NSNumber>()
         var channelSet2 = Set<NSNumber>()
         var channelSet3 = Set<NSNumber>()
@@ -114,17 +114,18 @@ class ChannelAllocationTest: XCTestCase {
             }
         }
 
-        XCTAssertEqual(.success, group.wait(timeout: TestHelper.dispatchTimeFromNow(10)), "Timed out waiting for allocations")
+        XCTAssertEqual(.success, group.wait(timeout: TestHelper.dispatchTimeFromNow(10)),
+                                            "Timed out waiting for allocations")
 
         let channelSets                    = [channelSet1, channelSet2, channelSet3]
         let expectedUniqueUnallocatedCount = channelSets.reduce(0, sumUnallocated)
         let total                          = channelSets.reduce(0, {$0 + $1.count})
 
-        XCTAssertEqual(RMQChannelLimit + expectedUniqueUnallocatedCount, total)
+        XCTAssertEqual(RMQChannelMaxDefault + expectedUniqueUnallocatedCount, total)
     }
 
     func testChannelsAreReleasedWithThreadSafety() {
-        let allocator   = RMQMultipleChannelAllocator(channelSyncTimeout: 2)
+        let allocator   = RMQMultipleChannelAllocator(maxCapacity: 127, channelSyncTimeout: 2)
         let group       = DispatchGroup()
         let queues      = [
             DispatchQueue.global(qos: DispatchQoS.QoSClass.userInteractive),
@@ -134,24 +135,25 @@ class ChannelAllocationTest: XCTestCase {
         allocateAll(allocator!)
 
         queues[0].async(group: group) {
-            for n in 1...RMQChannelLimit {
+            for n in 1...RMQChannelMaxDefault {
                 allocator?.releaseChannelNumber(n as NSNumber)
             }
         }
 
         queues[1].async(group: group) {
-            for n in 1...RMQChannelLimit {
+            for n in 1...RMQChannelMaxDefault {
                 allocator?.releaseChannelNumber(n as NSNumber)
             }
         }
 
         queues[2].async(group: group) {
-            for n in 1...RMQChannelLimit {
+            for n in 1...RMQChannelMaxDefault {
                 allocator?.releaseChannelNumber(n as NSNumber)
             }
         }
 
-        XCTAssertEqual(.success, group.wait(timeout: TestHelper.dispatchTimeFromNow(10)), "Timed out waiting for releases")
+        XCTAssertEqual(.success, group.wait(timeout: TestHelper.dispatchTimeFromNow(10)),
+                                            "Timed out waiting for releases")
         XCTAssertEqual(1, allocator?.allocate().channelNumber)
     }
 

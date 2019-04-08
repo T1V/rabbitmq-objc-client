@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,7 +49,7 @@
 // under either the MPL or the ASL License.
 // ---------------------------------------------------------------------------
 
-@objc class DispatcherSpy : NSObject, RMQDispatcher {
+@objc class DispatcherSpy: NSObject, RMQDispatcher {
     var lastSyncMethod: RMQMethod?
     var lastSyncMethodHandler: ((RMQFrameset?) -> Void)?
     var lastBlockingSyncMethod: RMQMethod?
@@ -58,10 +58,11 @@
     var lastAsyncMethod: RMQMethod?
     var lastBlockingWaitOn: String?
     var activatedWithChannel: RMQChannel?
-    var activatedWithDelegate: RMQConnectionDelegate?
+    weak var activatedWithDelegate: RMQConnectionDelegate?
     var lastFramesetHandled: RMQFrameset?
     var fakeSerialQueue = FakeSerialQueue()
     var disabled = false
+    var open = false
 
     func blockingWait(on method: AnyClass!) {
         lastBlockingWaitOn = method.description()
@@ -70,6 +71,7 @@
     func activate(with channel: RMQChannel!, delegate: RMQConnectionDelegate!) {
         activatedWithChannel = channel
         activatedWithDelegate = delegate
+        open = true
     }
 
     func sendAsyncMethod(_ method: RMQMethod!) {
@@ -111,6 +113,18 @@
     func enable() {
         disabled = false
         fakeSerialQueue.resume()
+    }
+
+    func isOpen() -> Bool {
+        return open
+    }
+
+    func wasClosedByServer() -> Bool {
+        return lastFramesetHandled?.method.isKind(of: RMQChannelClose.self) ?? false
+    }
+
+    func wasClosedExplicitly() -> Bool {
+        return lastSyncMethod?.isKind(of: RMQChannelClose.self) ?? false
     }
 
     // MARK: Helpers

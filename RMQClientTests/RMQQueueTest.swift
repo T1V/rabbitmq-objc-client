@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -102,11 +102,12 @@ class RMQQueueTest: XCTestCase {
             BasicPropertyFixtures.exhaustiveHeaders()
         ]
 
-        queue.publish("{\"a\": \"message\"}".data(using: String.Encoding.utf8),
-                      properties: properties as! [RMQValue & RMQBasicValue],
+        queue.publish("{\"a\": \"message\"}".data(using: String.Encoding.utf8)!,
+                      properties: (properties as! [RMQValue & RMQBasicValue]),
                       options: [.mandatory])
 
-        XCTAssertEqual("{\"a\": \"message\"}".data(using: String.Encoding.utf8), channel.lastReceivedBasicPublishMessage)
+        XCTAssertEqual("{\"a\": \"message\"}".data(using: String.Encoding.utf8),
+                       channel.lastReceivedBasicPublishMessage)
         XCTAssertEqual("some.queue", channel.lastReceivedBasicPublishRoutingKey)
         XCTAssertEqual("", channel.lastReceivedBasicPublishExchange)
         XCTAssertEqual([.mandatory], channel.lastReceivedBasicPublishOptions)
@@ -127,18 +128,19 @@ class RMQQueueTest: XCTestCase {
     }
 
     func testPopDelegatesToChannelBasicGet() {
-        let stubbedMessage = RMQMessage(body: body, consumerTag: "", deliveryTag: 123, redelivered: false, exchangeName: "", routingKey: "", properties: [])
+        let stubbedMessage = RMQMessage(body: body, consumerTag: "", deliveryTag: 123, redelivered: false,
+                                        exchangeName: "", routingKey: "", properties: [])
         let channel = ChannelSpy(channelNumber: 42)
         let queue = QueueHelper.makeQueue(channel, name: "great.queue")
 
         var receivedMessage: RMQMessage?
-        queue.pop() { m in
+        queue.pop { m in
             receivedMessage = m
         }
 
         XCTAssertEqual("great.queue", channel.lastReceivedBasicGetQueue)
         XCTAssertEqual([], channel.lastReceivedBasicGetOptions)
-        
+
         channel.lastReceivedBasicGetCompletionHandler!(stubbedMessage!)
         XCTAssertEqual(stubbedMessage, receivedMessage)
     }
@@ -152,7 +154,9 @@ class RMQQueueTest: XCTestCase {
             handlerCalled = true
         })
 
-        let message = RMQMessage(body: "I have default options!".data(using: String.Encoding.utf8), consumerTag: "", deliveryTag: 123, redelivered: false, exchangeName: "", routingKey: "", properties: [])
+        let message = RMQMessage(body: "I have default options!".data(using: String.Encoding.utf8),
+                                 consumerTag: "", deliveryTag: 123, redelivered: false, exchangeName: "",
+                                 routingKey: "", properties: [])
         channel.lastReceivedBasicConsumeBlock!(message!)
 
         XCTAssert(handlerCalled)
@@ -168,7 +172,9 @@ class RMQQueueTest: XCTestCase {
             handlerCalled = true
         })
 
-        let message = RMQMessage(body: "I have custom options!".data(using: String.Encoding.utf8), consumerTag: "", deliveryTag: 123, redelivered: false, exchangeName: "", routingKey: "", properties: [])
+        let message = RMQMessage(body: "I have custom options!".data(using: String.Encoding.utf8),
+                                 consumerTag: "", deliveryTag: 123, redelivered: false, exchangeName: "",
+                                 routingKey: "", properties: [])
         channel.lastReceivedBasicConsumeBlock!(message!)
 
         XCTAssert(handlerCalled)
@@ -180,11 +186,10 @@ class RMQQueueTest: XCTestCase {
         let queue = QueueHelper.makeQueue(channel, name: "cancelling")
 
         let consumer = queue.subscribe({ _ in })
-        XCTAssertNotNil(consumer?.tag)
+        XCTAssertNotNil(consumer.tag)
 
-        consumer?.cancel()
-
-        XCTAssertEqual(consumer?.tag, channel.lastReceivedBasicCancelConsumerTag)
+        consumer.cancel()
+        XCTAssertEqual(consumer.tag, channel.lastReceivedBasicCancelConsumerTag)
     }
 
     func testBindCallsBindOnChannel() {
@@ -222,7 +227,7 @@ class RMQQueueTest: XCTestCase {
         XCTAssertEqual("my-exchange", channel.lastReceivedQueueUnbindExchange)
         XCTAssertEqual("foo", channel.lastReceivedQueueUnbindRoutingKey)
     }
-    
+
     func testUnbindWithoutRoutingKeySendsEmptyStringRoutingKey() {
         let channel = ChannelSpy(channelNumber: 123)
         let ex = RMQExchange(name: "my-exchange", type: "direct", options: [], channel: channel)
@@ -234,7 +239,7 @@ class RMQQueueTest: XCTestCase {
         XCTAssertEqual("my-exchange", channel.lastReceivedQueueUnbindExchange)
         XCTAssertEqual("", channel.lastReceivedQueueUnbindRoutingKey)
     }
-    
+
     func testDeleteCallsDeleteOnChannel() {
         let channel = ChannelSpy(channelNumber: 123)
         let queue = QueueHelper.makeQueue(channel, name: "deletable")

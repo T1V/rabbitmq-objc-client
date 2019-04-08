@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -64,13 +64,16 @@ class RMQUnallocatedChannelTest: XCTestCase {
         let ch = RMQUnallocatedChannel()
         ch.activate(with: delegate)
 
+        // swiftlint:disable opening_brace
         let blocks: [() -> Void] = [
             { ch.ack(1) },
-            { ch.afterConfirmed { _,_  in } },
+            { ch.afterConfirmed { _, _ in } },
             { ch.basicConsume("foo", options: []) { _ in } },
             { ch.generateConsumerTag() },
             { ch.basicGet("foo", options: []) { _ in } },
-            { ch.basicPublish("hi".data(using: String.Encoding.utf8)!, routingKey: "yo", exchange: "hmm", properties: [], options: []) },
+            { ch.basicPublish("hi".data(using: String.Encoding.utf8)!,
+                              routingKey: "yo", exchange: "hmm",
+                              properties: [], options: []) },
             { ch.basicQos(2, global: false) },
             { ch.blockingWait(on: RMQConnectionStart.self) },
             { ch.confirmSelect() },
@@ -88,7 +91,7 @@ class RMQUnallocatedChannelTest: XCTestCase {
             { ch.queueDelete("foo", options: []) },
             { ch.queueBind("", exchange: "", routingKey: "") },
             { ch.queueUnbind("", exchange: "", routingKey: "") },
-            { ch.reject(1) },
+            { ch.reject(1) }
         ]
 
         for (index, run) in blocks.enumerated() {
@@ -106,4 +109,11 @@ class RMQUnallocatedChannelTest: XCTestCase {
         XCTAssertNil(delegate.lastChannelError)
     }
 
+    func testIsNotConsideredOpen() {
+        let delegate = ConnectionDelegateSpy()
+        let ch = RMQUnallocatedChannel()
+        ch.activate(with: delegate)
+
+        XCTAssertFalse(ch.isOpen())
+    }
 }

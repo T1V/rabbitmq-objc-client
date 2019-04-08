@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,18 +51,21 @@
 
 #import <Foundation/Foundation.h>
 #import "RMQMethods.h"
+#import "RMQMethods+Convenience.h"
 #import "RMQExchange.h"
 #import "RMQFrameHandler.h"
 #import "RMQQueue.h"
 
 @protocol RMQConnectionDelegate;
 
+typedef void (^RMQChannelCompletionHandler)(void);
+
 /*!
  * @brief Interface to a channel.
  * All operations on channels, except methods with 'blocking' in the name,
  * are asynchronous and execute on a GCD serial queue.
  *
- * @see <a href="http://www.rabbitmq.com/getstarted.html">RabbitMQ tutorials</a>
+ * @see <a href="https://www.rabbitmq.com/getstarted.html">RabbitMQ tutorials</a>
  */
 @protocol RMQChannel <NSObject, RMQFrameHandler>
 
@@ -70,6 +73,9 @@
 
 /// @brief Closes the channel.
 - (void)close;
+
+/// @brief Closes the channel and executes a completion handler.
+- (void)close:(nullable RMQChannelCompletionHandler)handler;
 
 /// @brief Closes the channel, blocking the calling thread.
 - (void)blockingClose;
@@ -82,7 +88,7 @@
 
 /*!
  * @brief Set a callback that will be called when all prior basic.publishes have been acked or nacked.
- * @discussion Each call to this method delimits a new 'transaction' for a set of basic.publishes.
+ * @discussion Each call to this method delimits a new 'batch' for a set of basic.publishes.
  * @param handler The callback to be called with a set of acked and a set of nacked delivery IDs.
  */
 - (void)afterConfirmed:(void (^ _Nonnull)(NSSet<NSNumber *> * _Nonnull acked, NSSet<NSNumber *> * _Nonnull nacked))handler;
@@ -94,6 +100,38 @@
 
 /// @brief Internal. Sends a channel.open.
 - (void)open;
+
+/*!
+ * @brief Used to check if the channel is open and can be used
+ *
+ * @return true if the channel is open and can be used
+ */
+- (BOOL) isOpen;
+
+/*!
+ * @brief Used to check if the channel is closed. Closed channels no longer
+ *        can be used.
+ *
+ * @return true if the channel is closed and no longer can be used
+ */
+- (BOOL) isClosed;
+
+/*!
+ * @brief Used to check if the channel was closed by the server due to a channel-level
+ *        protocol exception
+ *
+ * @return true if the channel was closed by the server due to a channel-level
+ *         protocol exception
+ */
+- (BOOL) wasClosedByServer;
+
+/*!
+ * @brief Used to check if the channel was closed explicitly by calling the close
+ *        method on it
+ *
+ * @return true if the channel was closed explicitly by calling the close
+ *         method on it
+ */- (BOOL) wasClosedExplicitly;
 
 /// @brief Internal. Used by automatic connection recovery.
 - (void)recover;
@@ -128,6 +166,10 @@
  */
 - (nonnull RMQQueue *)queue:(nonnull NSString *)queueName;
 
+/// @brief Purge a queue
+- (void)queuePurge:(nonnull NSString *)queueName
+           options:(RMQQueuePurgeOptions)options;
+
 /// @brief Delete a queue
 - (void)queueDelete:(nonnull NSString *)queueName
             options:(RMQQueueDeleteOptions)options;
@@ -142,6 +184,16 @@
            exchange:(nonnull NSString *)exchangeName
          routingKey:(nonnull NSString *)routingKey;
 
+#pragma mark Register a consumer
+
+/*!
+ * @brief Consume messages from a queue
+ * @see RMQQueue's subscribe method (which has variants with defaults)
+ */
+- (nonnull RMQConsumer *)basicConsume:(nonnull NSString *)queueName
+                  acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                              handler:(RMQConsumerDeliveryHandler _Nonnull)handler;
+
 /*!
  * @brief Consume messages from a queue
  * @see RMQQueue's subscribe method (which has variants with defaults)
@@ -154,6 +206,15 @@
  * @see RMQQueue's subscribe method (which has variants with defaults)
  */
 - (void)basicConsume:(nonnull RMQConsumer *)consumer;
+
+/*!
+ * @brief Consume messages from a queue
+ * @see RMQQueue's subscribe method (which has variants with defaults)
+ */
+- (nonnull RMQConsumer *)basicConsume:(nonnull NSString *)queueName
+                              acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                            arguments:(RMQTable * _Nonnull)arguments
+                              handler:(RMQConsumerDeliveryHandler _Nonnull)handler;
 
 /*!
  * @brief Consume messages from a queue

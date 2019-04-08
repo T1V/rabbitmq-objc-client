@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -72,8 +72,9 @@ class RMQParserTest: XCTestCase {
         }
     }
 
+    // swiftlint:disable line_length
     func testShortString() {
-        let s = "PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'rmqclient.integration-tests.E0B5A093-6B2E-402C-84F3-E93B59DF807B-71865-0003F85C24C90FC6' in vhost '/': received 'false' but current is 'true'"
+        let s = "PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'q1' in vhost '/': received 'false' but current is 'true'"
         let data = NSMutableData()
         var stringLength = s.lengthOfBytes(using: String.Encoding.utf8)
         data.append(&stringLength, length: 1)
@@ -175,7 +176,7 @@ class RMQParserTest: XCTestCase {
         let parser = RMQParser(data: "\u{1}".data(using: String.Encoding.utf8)!)
         XCTAssertEqual(0, parser.parseShortUInt())
     }
-    
+
     func testFieldTableWithAllTypes() {
         let signedByte: Int8 = -128
         let date = Date.distantFuture
@@ -197,7 +198,7 @@ class RMQParserTest: XCTestCase {
         dict["void"]            = RMQVoid()
         dict["byte-array"]      = RMQByteArray("hi".data(using: String.Encoding.utf8)!)
 
-        let table = RMQTable(dict as! [String : RMQValue & RMQFieldValue])
+        let table = RMQTable(dict as! [String: RMQValue & RMQFieldValue])
         let parser = RMQParser(data: table.amqEncoded())
         XCTAssertEqual(dict, parser.parseFieldTable())
     }
@@ -207,13 +208,13 @@ class RMQParserTest: XCTestCase {
         dict["unsigned-16-bit"]      = RMQShort(65535)
         dict["bad-size"]             = ValueWithBadSize(123)
 
-        let table = RMQTable(dict as! [String : RMQValue & RMQFieldValue])
+        let table = RMQTable(dict as! [String: RMQValue & RMQFieldValue])
         let data = table.amqEncoded()
         let parser = RMQParser(data: data)
         XCTAssertTrue(parser.parseFieldTable().isEmpty)
     }
 
-    @objc class ValueWithBadSize : RMQSignedLong {
+    @objc class ValueWithBadSize: RMQSignedLong {
         override func amqEncoded() -> Data {
             var longVal = CFSwapInt32HostToBig(UInt32(self.integerValue))
             return Data(bytes: &longVal, count: 1)

@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -56,7 +56,7 @@ class RMQGCDSerialQueueTest: XCTestCase {
     func testAsyncEnqueue() {
         let q = RMQGCDSerialQueue(name: "async enqueue test")
         let semaphore = DispatchSemaphore(value: 0)
-        q?.enqueue() { semaphore.signal() }
+        q?.enqueue { semaphore.signal() }
 
         XCTAssertEqual(
             .success,
@@ -68,7 +68,7 @@ class RMQGCDSerialQueueTest: XCTestCase {
     func testSyncEnqueue() {
         let q = RMQGCDSerialQueue(name: "sync enqueue test")
         var foo = 1
-        q?.enqueue() { foo += 1 }
+        q?.enqueue { foo += 1 }
         q?.blockingEnqueue { foo += 2 }
 
         XCTAssertEqual(4, foo)

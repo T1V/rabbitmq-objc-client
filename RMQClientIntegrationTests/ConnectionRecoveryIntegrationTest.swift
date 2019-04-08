@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,13 +51,14 @@
 
 import XCTest
 
-enum RecoveryTestError : Error {
+enum RecoveryTestError: Error {
     case timeOutWaitingForConnectionCountToDrop
 }
 
+// swiftlint:disable function_body_length
 class ConnectionRecoveryIntegrationTest: XCTestCase {
-    let amqpLocalhost = "amqp://guest:guest@127.0.0.1"
-    let httpAPI = RMQHTTP("http://guest:guest@127.0.0.1:15672/api")
+    let plainEndpoint = IntegrationHelper.defaultEndpoint
+    let httpAPIClient = RMQHTTP.withTestEndpoint()
 
     func testRecoversFromSocketDisconnect() {
         let recoveryInterval = 2
@@ -66,15 +67,21 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
         let confirmationTimeout = 10
         let delegate = ConnectionDelegateSpy()
 
-        let tlsOptions = RMQTLSOptions.fromURI(amqpLocalhost)
-        let transport = RMQTCPSocketTransport(host: "127.0.0.1", port: 5672, tlsOptions: tlsOptions)
+        let tlsOptions = RMQTLSOptions.fromURI(plainEndpoint)
+        let transport = RMQTCPSocketTransport(host: "127.0.0.1",
+                                              port: 5672,
+                                              tlsOptions: tlsOptions,
+                                              connectTimeout: 15,
+                                              readTimeout: 30,
+                                              writeTimeout: 30)
 
-        let conn = ConnectionHelper.makeConnection(recoveryInterval: recoveryInterval, transport: transport, delegate: delegate)
+        let conn = ConnectionHelper.makeConnection(recoveryInterval: recoveryInterval,
+                                                   transport: transport, delegate: delegate)
         conn.start()
         defer { conn.blockingClose() }
 
         let ch = conn.createChannel()
-        let q = ch.queue("", options: [.exclusive], arguments: ["x-max-length" : RMQShort(3)])
+        let q = ch.queue("", options: [.exclusive], arguments: ["x-max-length": RMQShort(3)])
         let ex1 = ch.direct("foo", options: [.autoDelete])
         let ex2 = ch.direct("bar", options: [.autoDelete])
         let consumerSemaphore = DispatchSemaphore(value: 0)
@@ -91,7 +98,7 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
 
         ch.confirmSelect()
 
-        ex1.publish("before close".data(using: String.Encoding.utf8))
+        ex1.publish("before close".data(using: String.Encoding.utf8)!)
         XCTAssertEqual(.success, consumerSemaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout)),
                        "Timed out waiting for message")
 
@@ -100,9 +107,9 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
         XCTAssert(TestHelper.pollUntil(recoveryTimeout) { delegate.recoveredConnection != nil },
                   "Didn't finish recovery")
 
-        q.publish("after close 1".data(using: String.Encoding.utf8))
+        q.publish("after close 1".data(using: String.Encoding.utf8)!)
         _ = consumerSemaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout))
-        ex1.publish("after close 2".data(using: String.Encoding.utf8))
+        ex1.publish("after close 2".data(using: String.Encoding.utf8)!)
         _ = consumerSemaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout))
 
         var acks: Set<NSNumber>?
@@ -123,11 +130,11 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
                        "Didn't receive acks or nacks for publications")
 
         // test recovery of queue arguments - in this case, x-max-length
-        consumer!.cancel()
-        q.publish("4".data(using: String.Encoding.utf8))
-        q.publish("5".data(using: String.Encoding.utf8))
-        q.publish("6".data(using: String.Encoding.utf8))
-        q.publish("7".data(using: String.Encoding.utf8))
+        consumer.cancel()
+        q.publish("4".data(using: String.Encoding.utf8)!)
+        q.publish("5".data(using: String.Encoding.utf8)!)
+        q.publish("6".data(using: String.Encoding.utf8)!)
+        q.publish("7".data(using: String.Encoding.utf8)!)
 
         var messagesPostCancel: [RMQMessage] = []
         q.subscribe(handler: { m in
@@ -148,14 +155,10 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
         let semaphoreTimeout: Double = 30
         let delegate = ConnectionDelegateSpy()
 
-        let conn = RMQConnection(uri: amqpLocalhost,
-                                 tlsOptions: RMQTLSOptions.fromURI(amqpLocalhost),
-                                 channelMax: RMQChannelLimit as NSNumber,
-                                 frameMax: RMQFrameMax as NSNumber,
-                                 heartbeat: 10,
-                                 syncTimeout: 10,
+        let conn = RMQConnection(uri: plainEndpoint,
+                                 tlsOptions: RMQTLSOptions.fromURI(plainEndpoint),
+                                 userProvidedConnectionName: nil,
                                  delegate: delegate,
-                                 delegateQueue: DispatchQueue.main,
                                  recoverAfter: recoveryInterval as NSNumber,
                                  recoveryAttempts: 5,
                                  recoverFromConnectionClose: true)
@@ -175,7 +178,7 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
             semaphore.signal()
         })
 
-        ex.publish("before close".data(using: String.Encoding.utf8))
+        ex.publish("before close".data(using: String.Encoding.utf8)!)
         XCTAssertEqual(.success, semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout)),
                        "Timed out waiting for message")
 
@@ -184,9 +187,9 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
         XCTAssert(TestHelper.pollUntil(30) { self.connections().count >= 1 },
                   "Didn't finish recovery the first time")
 
-        q.publish("after close 1".data(using: String.Encoding.utf8))
+        q.publish("after close 1".data(using: String.Encoding.utf8)!)
         _ = semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout))
-        ex.publish("after close 2".data(using: String.Encoding.utf8))
+        ex.publish("after close 2".data(using: String.Encoding.utf8)!)
         _ = semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout))
 
         XCTAssertEqual("before close".data(using: String.Encoding.utf8), messages[0].body)
@@ -198,9 +201,9 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
         XCTAssert(TestHelper.pollUntil(30) { self.connections().count >= 1 },
                   "Didn't finish recovery the second time")
 
-        q.publish("after close 3".data(using: String.Encoding.utf8))
+        q.publish("after close 3".data(using: String.Encoding.utf8)!)
         _ = semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout))
-        ex.publish("after close 4".data(using: String.Encoding.utf8))
+        ex.publish("after close 4".data(using: String.Encoding.utf8)!)
         _ = semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(semaphoreTimeout))
 
         XCTAssertEqual("before close".data(using: String.Encoding.utf8), messages[0].body)
@@ -211,7 +214,7 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
     }
 
     fileprivate func connections() -> [RMQHTTPConnection] {
-        return RMQHTTPParser().connections(httpAPI.get("/connections"))
+        return RMQHTTPParser().connections(httpAPIClient.get("/connections"))
     }
 
     fileprivate func closeAllConnections() throws {
@@ -221,7 +224,7 @@ class ConnectionRecoveryIntegrationTest: XCTestCase {
             let escapedName = conn.name.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
             let path = "/connections/\(escapedName)"
 
-            httpAPI.delete(path)
+            httpAPIClient.delete(path)
         }
 
         if (!TestHelper.pollUntil(30) { self.connections().count == 0 }) {

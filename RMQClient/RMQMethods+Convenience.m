@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,6 +51,14 @@
 
 #import "RMQMethods+Convenience.h"
 
+RMQBasicConsumeOptions RMQBasicConsumeAcknowledgementModeToOptions(RMQBasicConsumeAcknowledgementMode mode) {
+    if ((mode & RMQBasicConsumeAcknowledgementModeAuto) == RMQBasicConsumeAcknowledgementModeAuto) {
+        return RMQBasicConsumeNoAck;
+    } else {
+        return RMQBasicConsumeNoOptions;
+    };
+}
+
 @implementation RMQBasicConsume (Convenience)
 
 - (instancetype)initWithQueue:(NSString *)queueName
@@ -71,6 +79,27 @@
                              queue:[[RMQShortstr alloc] init:queueName]
                        consumerTag:[[RMQShortstr alloc] init:consumerTag]
                            options:options
+                         arguments:arguments];
+}
+
+- (instancetype)initWithQueue:(NSString *)queueName
+                  consumerTag:(NSString *)consumerTag
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode {
+
+
+    return [self initWithQueue:queueName
+                   consumerTag:consumerTag
+                       options:RMQBasicConsumeAcknowledgementModeToOptions(acknowledgementMode)];
+}
+
+- (instancetype)initWithQueue:(NSString *)queueName
+                  consumerTag:(NSString *)consumerTag
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                    arguments:(RMQTable *)arguments{
+    return [self initWithReserved1:[[RMQShort alloc] init:0]
+                             queue:[[RMQShortstr alloc] init:queueName]
+                       consumerTag:[[RMQShortstr alloc] init:consumerTag]
+                           options:RMQBasicConsumeAcknowledgementModeToOptions(acknowledgementMode)
                          arguments:arguments];
 }
 
@@ -188,6 +217,17 @@
                              queue:amqQueueName
                            options:options
                          arguments:arguments];
+}
+
+@end
+
+@implementation RMQQueuePurge (Convenience)
+
+- (instancetype)initWithQueue:(NSString *)queueName
+                      options:(RMQQueuePurgeOptions)options {
+    return [self initWithReserved1:[[RMQShort alloc] init:0]
+                             queue:[[RMQShortstr alloc] init:queueName]
+                           options:options];
 }
 
 @end

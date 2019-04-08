@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,6 +51,15 @@
 
 #import "RMQMethods.h"
 
+typedef NS_OPTIONS(NSUInteger, RMQBasicConsumeAcknowledgementMode) {
+    /// @brief
+    RMQBasicConsumeAcknowledgementModeManual = 1 << 0,
+    /// @brief
+    RMQBasicConsumeAcknowledgementModeAuto   = 1 << 1
+};
+
+RMQBasicConsumeOptions RMQBasicConsumeAcknowledgementModeToOptions(RMQBasicConsumeAcknowledgementMode mode);
+
 @interface RMQBasicConsume (Convenience)
 
 - (instancetype)initWithQueue:(NSString *)queueName
@@ -59,9 +68,17 @@
 
 - (instancetype)initWithQueue:(NSString *)queueName
                   consumerTag:(NSString *)consumerTag
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode;
+
+- (instancetype)initWithQueue:(NSString *)queueName
+                  consumerTag:(NSString *)consumerTag
                       options:(RMQBasicConsumeOptions)options
                       arguments:(RMQTable *)arguments;
 
+- (instancetype)initWithQueue:(NSString *)queueName
+                  consumerTag:(NSString *)consumerTag
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                    arguments:(RMQTable *)arguments;
 @end
 
 @interface RMQBasicQos (Convenience)
@@ -117,6 +134,13 @@
 - (instancetype)initWithQueue:(NSString *)queueName
                       options:(RMQQueueDeclareOptions)options
                     arguments:(RMQTable *)arguments;
+
+@end
+
+@interface RMQQueuePurge (Convenience)
+
+- (instancetype)initWithQueue:(NSString *)queueName
+                      options:(RMQQueuePurgeOptions)options;
 
 @end
 

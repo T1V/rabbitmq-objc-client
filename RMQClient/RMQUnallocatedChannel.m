@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -74,7 +74,25 @@
 
 - (void)open {}
 
+- (BOOL)isOpen {
+    return FALSE;
+}
+
+- (BOOL)isClosed {
+    return !self.isOpen;
+}
+
+- (BOOL)wasClosedByServer {
+    return FALSE;
+}
+
+- (BOOL)wasClosedExplicitly {
+    return FALSE;
+}
+
 - (void)close {}
+
+- (void)close:(RMQChannelCompletionHandler)handler {}
 
 - (void)blockingClose {}
 
@@ -100,6 +118,13 @@
 }
 
 - (RMQConsumer *)basicConsume:(NSString *)queueName
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                      handler:(RMQConsumerDeliveryHandler)handler {
+    [self err];
+    return nil;
+}
+
+- (RMQConsumer *)basicConsume:(NSString *)queueName
                       options:(RMQBasicConsumeOptions)options
                       handler:(RMQConsumerDeliveryHandler)handler {
     [self basicConsume:[[RMQConsumer alloc] initWithChannel:self queueName:queueName options:options]];
@@ -118,6 +143,14 @@
                               options:(RMQBasicConsumeOptions)options
                             arguments:(RMQTable * _Nonnull)arguments
                               handler:(RMQConsumerDeliveryHandler _Nonnull)handler {
+    [self err];
+    return nil;
+}
+
+- (RMQConsumer *)basicConsume:(NSString *)queueName
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                    arguments:(RMQTable *)arguments
+                      handler:(RMQConsumerDeliveryHandler)handler {
     [self err];
     return nil;
 }
@@ -166,6 +199,11 @@ completionHandler:(RMQConsumerDeliveryHandler)completionHandler {
 
 - (RMQQueue *)queue:(NSString *)queueName {
     return [self queue:queueName options:RMQQueueDeclareNoOptions];
+}
+
+- (void)queuePurge:(NSString *)queueName
+           options:(RMQQueuePurgeOptions)options {
+    [self err];
 }
 
 - (void)queueDelete:(NSString *)queueName

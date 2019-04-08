@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -62,7 +62,7 @@ class ConnectionTuningTest: XCTestCase {
             ),
             negotiatedParamsGivenServerParams(
                 transport, q,
-                RMQShort(0),  RMQLong(0), RMQShort(0)
+                RMQShort(0), RMQLong(0), RMQShort(0)
             )
         )
     }
@@ -86,7 +86,7 @@ class ConnectionTuningTest: XCTestCase {
         let q = connectWithOptions(transport, 11, 9, 8)
         XCTAssertEqual(
             clientTuneOk(
-                RMQShort(11),  RMQLong(9), RMQShort(8)
+                RMQShort(11), RMQLong(9), RMQShort(8)
             ),
             negotiatedParamsGivenServerParams(
                 transport, q,
@@ -123,11 +123,12 @@ class ConnectionTuningTest: XCTestCase {
 
     func connectWithOptions(_ transport: ControlledInteractionTransport,
                             _ channelMax: Int, _ frameMax: UInt, _ heartbeat: Int,
-                              heartbeatSender: RMQHeartbeatSender = HeartbeatSenderSpy()) -> FakeSerialQueue {
+                            heartbeatSender: RMQHeartbeatSender = HeartbeatSenderSpy()) -> FakeSerialQueue {
         let q = FakeSerialQueue()
         let connection = RMQConnection(
             transport: transport,
-            config: ConnectionWithFakesHelper.connectionConfig(channelMax: channelMax, frameMax: frameMax, heartbeat: heartbeat),
+            config: ConnectionWithFakesHelper.connectionConfig(channelMax: channelMax,
+                                                               frameMax: frameMax, heartbeat: heartbeat),
             handshakeTimeout: 10,
             channelAllocator: ChannelSpyAllocator(),
             frameHandler: FrameHandlerSpy(),
@@ -148,9 +149,9 @@ class ConnectionTuningTest: XCTestCase {
     @discardableResult
     func negotiatedParamsGivenServerParams(_ transport: ControlledInteractionTransport,
                                            _ q: FakeSerialQueue,
-                                             _ channelMax: RMQShort,
-                                               _ frameMax: RMQLong,
-                                                 _ heartbeat: RMQShort) -> RMQConnectionTuneOk {
+                                           _ channelMax: RMQShort,
+                                           _ frameMax: RMQLong,
+                                           _ heartbeat: RMQShort) -> RMQConnectionTuneOk {
         let tune = RMQConnectionTune(channelMax: channelMax, frameMax: frameMax, heartbeat: heartbeat)
 
         transport

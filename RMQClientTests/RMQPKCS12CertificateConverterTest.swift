@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,15 +54,15 @@ import XCTest
 class RMQPKCS12CertificateConverterTest: XCTestCase {
 
     func testConvertNSDataToArrayOfCertificates() {
-        let p12 = CertificateFixtures.guestBunniesP12()
-        let converter = RMQPKCS12CertificateConverter(data: p12 as Data?, password: "bunnies")
+        let p12 = try! CertificateFixtures.guestBunniesP12()
+        let converter = RMQPKCS12CertificateConverter(data: p12 as Data?, password: CertificateFixtures.password)
         let result = try! converter?.certificates()
 
         XCTAssertEqual(1, result?.count)
     }
 
     func testIncorrectPasswordThrowsError() {
-        let p12 = CertificateFixtures.guestBunniesP12()
+        let p12 = try! CertificateFixtures.guestBunniesP12()
         let converter = RMQPKCS12CertificateConverter(data: p12 as Data?, password: "hares")
 
         #if os(iOS)
@@ -79,7 +79,7 @@ class RMQPKCS12CertificateConverterTest: XCTestCase {
 
     func testGarbageDataThrowsError() {
         let p12 = "somegarbage".data(using: String.Encoding.utf8)!
-        let converter = RMQPKCS12CertificateConverter(data: p12, password: "bunnies")
+        let converter = RMQPKCS12CertificateConverter(data: p12, password: CertificateFixtures.password)
 
         #if os(iOS)
         XCTAssertThrowsError(try converter?.certificates()) { (error) in

@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -59,7 +59,7 @@ class RMQExchangeTest: XCTestCase {
         let ch = ChannelSpy(channelNumber: 1)
         ch.publishReturn = 123
         let ex = RMQExchange(name: "", type: "direct", options: [], channel: ch)
-        let retval = ex?.publish(body, routingKey: "my.q")
+        let retval = ex.publish(body, routingKey: "my.q")
 
         XCTAssertEqual(123, retval)
         XCTAssertEqual(body, ch.lastReceivedBasicPublishMessage)
@@ -72,7 +72,7 @@ class RMQExchangeTest: XCTestCase {
     func testPublishWithoutRoutingKeyUsesEmptyString() {
         let ch = ChannelSpy(channelNumber: 1)
         let ex = RMQExchange(name: "", type: "direct", options: [], channel: ch)
-        _ = ex?.publish(body)
+        _ = ex.publish(body)
 
         XCTAssertEqual("", ch.lastReceivedBasicPublishRoutingKey)
     }
@@ -80,7 +80,7 @@ class RMQExchangeTest: XCTestCase {
     func testPublishWithPersistence() {
         let ch = ChannelSpy(channelNumber: 1)
         let ex = RMQExchange(name: "some-ex", type: "direct", options: [], channel: ch)
-        _ = ex?.publish(body, routingKey: "my.q", persistent: true)
+        _ = ex.publish(body, routingKey: "my.q", persistent: true)
 
         XCTAssertEqual(body, ch.lastReceivedBasicPublishMessage)
         XCTAssertEqual("my.q", ch.lastReceivedBasicPublishRoutingKey)
@@ -110,12 +110,13 @@ class RMQExchangeTest: XCTestCase {
             BasicPropertyFixtures.exhaustiveHeaders()
         ]
 
-        _ = ex?.publish("{\"a\": \"message\"}".data(using: String.Encoding.utf8),
+        _ = ex.publish("{\"a\": \"message\"}".data(using: String.Encoding.utf8)!,
                         routingKey: "some.queue",
-                        properties: properties as! [RMQValue & RMQBasicValue],
+                        properties: (properties as! [RMQValue & RMQBasicValue]),
                         options: [.mandatory])
 
-        XCTAssertEqual("{\"a\": \"message\"}".data(using: String.Encoding.utf8), channel.lastReceivedBasicPublishMessage)
+        XCTAssertEqual("{\"a\": \"message\"}".data(using: String.Encoding.utf8),
+                       channel.lastReceivedBasicPublishMessage)
         XCTAssertEqual("some.queue", channel.lastReceivedBasicPublishRoutingKey)
         XCTAssertEqual("some-ex", channel.lastReceivedBasicPublishExchange)
         XCTAssertEqual([.mandatory], channel.lastReceivedBasicPublishOptions)
@@ -125,7 +126,7 @@ class RMQExchangeTest: XCTestCase {
     func testPublishWithOptions() {
         let ch = ChannelSpy(channelNumber: 1)
         let ex = RMQExchange(name: "some-ex", type: "direct", options: [], channel: ch)
-        _ = ex?.publish(body, routingKey: "my.q", persistent: false, options: [.mandatory])
+        _ = ex.publish(body, routingKey: "my.q", persistent: false, options: [.mandatory])
 
         XCTAssertEqual(body, ch.lastReceivedBasicPublishMessage)
         XCTAssertEqual("my.q", ch.lastReceivedBasicPublishRoutingKey)
@@ -137,12 +138,12 @@ class RMQExchangeTest: XCTestCase {
     func testDeleteCallsDeleteOnChannel() {
         let ch = ChannelSpy(channelNumber: 1)
         let ex = RMQExchange(name: "deletable", type: "direct", options: [], channel: ch)
-        
-        ex?.delete()
+
+        ex.delete()
         XCTAssertEqual("deletable", ch.lastReceivedExchangeDeleteExchangeName)
         XCTAssertEqual([], ch.lastReceivedExchangeDeleteOptions)
 
-        ex?.delete([.ifUnused])
+        ex.delete([.ifUnused])
         XCTAssertEqual("deletable", ch.lastReceivedExchangeDeleteExchangeName)
         XCTAssertEqual([.ifUnused], ch.lastReceivedExchangeDeleteOptions)
     }
@@ -152,12 +153,12 @@ class RMQExchangeTest: XCTestCase {
         let ex1 = RMQExchange(name: "ex1", type: "direct", options: [], channel: ch)
         let ex2 = RMQExchange(name: "ex2", type: "direct", options: [], channel: ch)
 
-        ex1?.bind(ex2)
+        ex1.bind(ex2)
         XCTAssertEqual("ex1", ch.lastReceivedExchangeBindDestinationName)
         XCTAssertEqual("ex2", ch.lastReceivedExchangeBindSourceName)
         XCTAssertEqual("", ch.lastReceivedExchangeBindRoutingKey)
 
-        ex1?.bind(ex2, routingKey: "foo")
+        ex1.bind(ex2, routingKey: "foo")
         XCTAssertEqual("ex1", ch.lastReceivedExchangeBindDestinationName)
         XCTAssertEqual("ex2", ch.lastReceivedExchangeBindSourceName)
         XCTAssertEqual("foo", ch.lastReceivedExchangeBindRoutingKey)
@@ -168,15 +169,14 @@ class RMQExchangeTest: XCTestCase {
         let ex1 = RMQExchange(name: "ex1", type: "direct", options: [], channel: ch)
         let ex2 = RMQExchange(name: "ex2", type: "direct", options: [], channel: ch)
 
-        ex1?.unbind(ex2)
+        ex1.unbind(ex2)
         XCTAssertEqual("ex1", ch.lastReceivedExchangeUnbindDestinationName)
         XCTAssertEqual("ex2", ch.lastReceivedExchangeUnbindSourceName)
         XCTAssertEqual("", ch.lastReceivedExchangeUnbindRoutingKey)
 
-        ex1?.unbind(ex2, routingKey: "foo")
+        ex1.unbind(ex2, routingKey: "foo")
         XCTAssertEqual("ex1", ch.lastReceivedExchangeUnbindDestinationName)
         XCTAssertEqual("ex2", ch.lastReceivedExchangeUnbindSourceName)
         XCTAssertEqual("foo", ch.lastReceivedExchangeUnbindRoutingKey)
     }
-
 }

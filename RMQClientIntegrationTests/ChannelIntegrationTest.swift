@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,34 +51,38 @@
 
 import XCTest
 
-class PublisherConfirmationIntegrationTest: XCTestCase {
-
+// see https://github.com/rabbitmq/rabbitmq-objc-client/blob/master/CONTRIBUTING.md
+// to set up your system for running integration tests
+class ChannelIntegrationTest: XCTestCase {
     func testWaitingForConfirmations() {
-        let semaphore = DispatchSemaphore(value: 0)
         let conn = RMQConnection()
         conn.start()
 
         let ch = conn.createChannel()
-
         ch.confirmSelect()
 
-        let q = ch.queue("", options: [.autoDelete, .exclusive])
-
-        q.publish("message a".data(using: String.Encoding.utf8))
-        q.publish("message b".data(using: String.Encoding.utf8))
+        let qName = "objc.tests.publisher.confirms.1"
+        ch.queue(qName, options: [.autoDelete, .exclusive])
 
         var acked: Set<NSNumber> = []
         var nacked: Set<NSNumber> = []
 
+        let semaphore = DispatchSemaphore(value: 0)
+        ch.defaultExchange().publish("msg".data(using: String.Encoding.utf8)!, routingKey: qName)
+
         ch.afterConfirmed { (acks, nacks) in
+            print("Received all outstanding confirms")
             acked = acks
             nacked = nacks
             semaphore.signal()
         }
 
         XCTAssertEqual(.success, semaphore.wait(timeout: TestHelper.dispatchTimeFromNow(10)))
-        XCTAssertEqual([1, 2], acked)
+        print("Acked: \(acked)")
+        print("Nacked: \(nacked)")
+        XCTAssertEqual([1], acked)
         XCTAssertEqual([], nacked)
-    }
 
+        conn.blockingClose()
+    }
 }

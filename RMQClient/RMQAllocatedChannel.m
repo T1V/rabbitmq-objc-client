@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -122,11 +122,37 @@
     [self.dispatcher sendSyncMethod:[RMQChannelOpen new]];
 }
 
+- (BOOL)isOpen {
+    return [self.dispatcher isOpen];
+}
+
+- (BOOL)isClosed {
+    return !self.isOpen;
+}
+
+- (BOOL)wasClosedExplicitly {
+    return [self.dispatcher wasClosedExplicitly];
+}
+
+- (BOOL)wasClosedByServer {
+    return [self.dispatcher wasClosedByServer];
+}
+
 - (void)close {
     [self.dispatcher sendSyncMethod:[RMQChannelClose new]
-                  completionHandler:^(RMQFrameset *frameset) {
-                      [self.allocator releaseChannelNumber:self.channelNumber];
-                  }];
+                     completionHandler:^(RMQFrameset *frameset) {
+                         [self.allocator releaseChannelNumber:self.channelNumber];
+                     }];
+}
+
+- (void) close:(RMQChannelCompletionHandler)handler {
+    [self.dispatcher sendSyncMethod:[RMQChannelClose new]
+                     completionHandler:^(RMQFrameset *frameset) {
+                         [self.allocator releaseChannelNumber:self.channelNumber];
+                         if(handler) {
+                             handler();
+                         }
+                     }];
 }
 
 - (void)blockingClose {
@@ -188,6 +214,12 @@
     return [self queue:queueName options:RMQQueueDeclareNoOptions];
 }
 
+- (void)queuePurge:(NSString *)queueName
+           options:(RMQQueuePurgeOptions)options {
+    [self.dispatcher sendSyncMethod:[[RMQQueuePurge alloc] initWithQueue:queueName
+                                                                 options:options]];
+}
+
 - (void)queueDelete:(NSString *)queueName
             options:(RMQQueueDeleteOptions)options {
     [self.queues removeObjectForKey:queueName];
@@ -213,6 +245,20 @@
                                                                routingKey:routingKey]];
     [self.queueBindings[queueName] removeObject:@{@"exchange": exchangeName,
                                                   @"routing-key": routingKey}];
+}
+
+#pragma mark Register a consumer
+
+- (RMQConsumer *)basicConsume:(NSString *)queueName
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                      handler:(RMQConsumerDeliveryHandler)handler {
+    RMQBasicConsumeOptions options = RMQBasicConsumeAcknowledgementModeToOptions(acknowledgementMode);
+    RMQConsumer *consumer = [[RMQConsumer alloc] initWithChannel:self
+                                                       queueName:queueName
+                                                         options:options];
+    [consumer onDelivery:handler];
+    [self basicConsume:consumer];
+    return consumer;
 }
 
 - (RMQConsumer *)basicConsume:(NSString *)queueName
@@ -243,12 +289,25 @@
     [self.dispatcher sendSyncMethod:[[RMQBasicConsume alloc] initWithQueue:consumer.queueName
                                                                consumerTag:consumer.tag
                                                                    options:consumer.options
-                                                                   arguments:consumer.arguments]
+                                                                 arguments:consumer.arguments]
                   completionHandler:^(RMQFrameset *frameset) {
                       self.consumers[consumer.tag] = consumer;
                   }];
 }
 
+- (RMQConsumer *)basicConsume:(NSString *)queueName
+          acknowledgementMode:(RMQBasicConsumeAcknowledgementMode)acknowledgementMode
+                    arguments:(RMQTable *)arguments
+                      handler:(RMQConsumerDeliveryHandler)handler {
+    RMQBasicConsumeOptions options = RMQBasicConsumeAcknowledgementModeToOptions(acknowledgementMode);
+    RMQConsumer *consumer = [[RMQConsumer alloc] initWithChannel:self
+                                                       queueName:queueName
+                                                         options:options
+                                                       arguments:arguments];
+    [consumer onDelivery:handler];
+    [self basicConsume:consumer];
+    return consumer;
+}
 
 
 - (NSString *)generateConsumerTag {
@@ -300,10 +359,12 @@ completionHandler:(RMQConsumerDeliveryHandler)userCompletionHandler {
                                                                    options:options]
                   completionHandler:^(RMQFrameset *frameset) {
                       RMQBasicGetOk *getOk = (RMQBasicGetOk *)frameset.method;
+
+                      BOOL redelivered = (getOk.options & RMQBasicGetOkRedelivered) == RMQBasicGetOkRedelivered;
                       RMQMessage *message = [[RMQMessage alloc] initWithBody:frameset.contentData
                                                                  consumerTag:@""
                                                                  deliveryTag:@(getOk.deliveryTag.integerValue)
-                                                                 redelivered:getOk.options & RMQBasicGetOkRedelivered
+                                                                 redelivered:redelivered
                                                                 exchangeName:getOk.exchange.stringValue
                                                                   routingKey:getOk.routingKey.stringValue
                                                                   properties:frameset.contentHeader.properties];
@@ -427,6 +488,7 @@ completionHandler:(RMQConsumerDeliveryHandler)userCompletionHandler {
                                                                         exchange:[[RMQShortstr alloc] init:name]
                                                                          options:options]];
 }
+
 
 # pragma mark - RMQFrameHandler
 

@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -118,11 +118,11 @@ class ConnectionClosureTest: XCTestCase {
                                  heartbeatSender: HeartbeatSenderSpy())
         // start connection
         conn.start()
-        
+
         /// simulate connection has been made
         try? q.step()
         transport.handshake()
-        
+
         conn.close()
 
         try? q.step()
@@ -147,7 +147,7 @@ class ConnectionClosureTest: XCTestCase {
                                  command: q,
                                  waiterFactory: FakeWaiterFactory(),
                                  heartbeatSender: heartbeatSender)
-        
+
         conn.start()
         conn.close()
 
@@ -253,7 +253,7 @@ class ConnectionClosureTest: XCTestCase {
 
         transport.delegate = nil // this actually happens in the transport, which is fake here
         transport.serverSendsPayload(MethodFixtures.connectionClose(), channelNumber: 0)
-        
+
         XCTAssertFalse(transport.isConnected())
         transport.assertClientSentMethod(MethodFixtures.connectionCloseOk(), channelNumber: 0)
         XCTAssertEqual(conn, transport.delegate as? RMQConnection)

@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,13 +50,17 @@
 // ---------------------------------------------------------------------------
 
 class ConnectionHelper {
-    static func makeConnection(recoveryInterval interval: Int = 2,
-                                                onlyErrors: Bool = true,
-                                                attemptLimit: Int = 1,
-                                                transport: RMQTCPSocketTransport,
-                                                delegate: RMQConnectionDelegate) -> RMQConnection {
-        let credentials = RMQCredentials(username: "guest", password: "guest")
-        let allocator = RMQMultipleChannelAllocator(channelSyncTimeout: 10)
+    static let defaultUsername = "guest"
+    static let defaultPassword = "guest"
+
+    static func makeConnection(recoveryInterval
+                               interval: Int = 2,
+                               onlyErrors: Bool = true,
+                               attemptLimit: Int = 1,
+                               transport: RMQTCPSocketTransport,
+                               delegate: RMQConnectionDelegate) -> RMQConnection {
+        let credentials = RMQCredentials(username: defaultUsername, password: defaultPassword)
+        let allocator = RMQMultipleChannelAllocator(maxCapacity: 127, channelSyncTimeout: 10)
         let heartbeatSender = RMQGCDHeartbeatSender(transport: transport, clock: RMQTickingClock())
         let commandQueue = RMQGCDSerialQueue(name: "socket-recovery-test-queue")
         let recovery = RMQConnectionRecover(interval: interval as NSNumber,
@@ -66,7 +70,7 @@ class ConnectionHelper {
                                             command: commandQueue,
                                             delegate: delegate)
         let config = RMQConnectionConfig(credentials: credentials,
-                                         channelMax: RMQChannelLimit as NSNumber,
+                                         channelMax: RMQChannelMaxDefault as NSNumber,
                                          frameMax: RMQFrameMax as NSNumber,
                                          heartbeat: 60,
                                          vhost: "/",

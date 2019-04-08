@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -59,7 +59,7 @@ class RMQMessageTest: XCTestCase {
         props.append(RMQBasicAppId("my app ID"))
         props.append(RMQBasicContentType("some/contenttype"))
         props.append(RMQBasicCorrelationId("my correlation ID"))
-        props.append(RMQBasicHeaders(["some" : RMQLongstr("header")]))
+        props.append(RMQBasicHeaders(["some": RMQLongstr("header")]))
         props.append(RMQBasicMessageId("my message ID"))
         props.append(RMQBasicType("my type"))
         props.append(RMQBasicPriority(9))
@@ -72,18 +72,18 @@ class RMQMessageTest: XCTestCase {
                            redelivered: false,
                            exchangeName: "my exchange",
                            routingKey: "my routing key",
-                           properties: props as! [RMQValue & RMQBasicValue])
+                           properties: (props as! [RMQValue & RMQBasicValue]))
 
-        let expectedHeaders: [String : NSObject] = ["some" : RMQLongstr("header")]
-        XCTAssertEqual("my app ID",         m?.appID())
-        XCTAssertEqual("some/contenttype",  m?.contentType())
+        let expectedHeaders: [String: NSObject] = ["some": RMQLongstr("header")]
+        XCTAssertEqual("my app ID", m?.appID())
+        XCTAssertEqual("some/contenttype", m?.contentType())
         XCTAssertEqual("my correlation ID", m?.correlationID())
-        XCTAssertEqual(expectedHeaders,     (m?.headers())!)
-        XCTAssertEqual("my message ID",     m?.messageID())
-        XCTAssertEqual("my type",           m?.messageType())
-        XCTAssertEqual(9,                   m?.priority())
-        XCTAssertEqual("my.sender",         m?.replyTo())
-        XCTAssertEqual(date,                m?.timestamp())
+        XCTAssertEqual(expectedHeaders, (m?.headers())!)
+        XCTAssertEqual("my message ID", m?.messageID())
+        XCTAssertEqual("my type", m?.messageType())
+        XCTAssertEqual(9, m?.priority())
+        XCTAssertEqual("my.sender", m?.replyTo())
+        XCTAssertEqual(date, m?.timestamp())
     }
 
 }

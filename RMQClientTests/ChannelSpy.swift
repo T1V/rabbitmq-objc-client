@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,7 +49,7 @@
 // under either the MPL or the ASL License.
 // ---------------------------------------------------------------------------
 
-@objc class ChannelSpy : NSObject, RMQChannel {
+@objc class ChannelSpy: NSObject, RMQChannel {
     var channelNumber: NSNumber
 
     var lastReceivedBasicConsumeOptions: RMQBasicConsumeOptions = []
@@ -64,7 +64,7 @@
     var lastReceivedBasicPublishMessage: Data?
     var lastReceivedBasicPublishRoutingKey: String?
     var lastReceivedBasicPublishExchange: String?
-    var lastReceivedBasicPublishProperties: Array<RMQValue>?
+    var lastReceivedBasicPublishProperties: [RMQValue]?
     var lastReceivedBasicPublishOptions: RMQBasicPublishOptions?
 
     var lastReceivedQueueBindQueueName: String?
@@ -74,6 +74,9 @@
     var lastReceivedQueueUnbindQueueName: String?
     var lastReceivedQueueUnbindExchange: String?
     var lastReceivedQueueUnbindRoutingKey: String?
+
+    var lastReceivedQueuePurgeQueueName: String?
+    var lastReceivedQueuePurgeOptions: RMQQueuePurgeOptions?
 
     var lastReceivedQueueDeleteQueueName: String?
     var lastReceivedQueueDeleteOptions: RMQQueueDeleteOptions?
@@ -99,6 +102,7 @@
     var stubbedBasicConsumeError: String?
     var openCalled = false
     var closeCalled = false
+    var currentlyOpen = false
     var blockingCloseCalled = false
     var prepareForRecoveryCalled = false
     var recoverCalled = false
@@ -124,14 +128,45 @@
 
     func open() {
         openCalled = true
+        currentlyOpen = true
+    }
+
+    func isOpen() -> Bool {
+        return currentlyOpen
+    }
+
+    func isClosed() -> Bool {
+        return !self.isOpen()
     }
 
     func close() {
         closeCalled = true
+        currentlyOpen = false
+    }
+
+    func close(_ completionHandler: RMQChannelCompletionHandler? = nil) {
+        closeCalled = true
+        currentlyOpen = false
+    }
+
+    func close(_ completionHandler: () -> Void?) {
+        closeCalled = true
+        currentlyOpen = false
+
+        completionHandler()
+    }
+
+    func wasClosedByServer() -> Bool {
+        return !isOpen() && !wasClosedExplicitly()
+    }
+
+    func wasClosedExplicitly() -> Bool {
+        return closeCalled
     }
 
     func blockingClose() {
         blockingCloseCalled = true
+        currentlyOpen = false
     }
 
     func prepareForRecovery() {
@@ -153,7 +188,7 @@
     }
 
     func afterConfirmed(_ handler: @escaping (Set<NSNumber>, Set<NSNumber>) -> Void) {
-        afterConfirmed(30, handler: handler);
+        afterConfirmed(30, handler: handler)
     }
 
     func sendMethod(_ sendingMethod: RMQMethod,
@@ -161,9 +196,10 @@
                     completionHandler: (RMQFrameset?, NSError?) -> Void) {
     }
 
-    func queue(_ queueName: String, options: RMQQueueDeclareOptions, arguments: [String: RMQValue & RMQFieldValue]) -> RMQQueue {
+    func queue(_ queueName: String, options: RMQQueueDeclareOptions,
+               arguments: [String: RMQValue & RMQFieldValue]) -> RMQQueue {
         if let foundQueue = queues[queueName] {
-            return foundQueue;
+            return foundQueue
         } else {
             let q = QueueHelper.makeQueue(self, name: queueName, options: options, arguments: arguments)
             queues[queueName] = q
@@ -188,6 +224,11 @@
         )
     }
 
+    func queuePurge(_ queueName: String, options: RMQQueuePurgeOptions = []) {
+        lastReceivedQueuePurgeQueueName = queueName
+        lastReceivedQueuePurgeOptions = options
+    }
+
     func queueDelete(_ queueName: String, options: RMQQueueDeleteOptions) {
         lastReceivedQueueDeleteQueueName = queueName
         lastReceivedQueueDeleteOptions = options
@@ -205,7 +246,20 @@
         lastReceivedQueueUnbindRoutingKey = routingKey
     }
 
-    func basicConsume(_ queueName: String, options: RMQBasicConsumeOptions, handler: @escaping RMQConsumerDeliveryHandler) -> RMQConsumer {
+    func basicConsume(_ queueName: String, acknowledgementMode: RMQBasicConsumeAcknowledgementMode,
+                      handler: @escaping RMQConsumerDeliveryHandler) -> RMQConsumer {
+        let options = RMQBasicConsumeAcknowledgementModeToOptions(acknowledgementMode)
+        return basicConsume(queueName, options: options, handler: handler)
+    }
+
+    func basicConsume(_ queueName: String, acknowledgementMode: RMQBasicConsumeAcknowledgementMode,
+                      arguments: RMQTable, handler: @escaping RMQConsumerDeliveryHandler) -> RMQConsumer {
+        let options = RMQBasicConsumeAcknowledgementModeToOptions(acknowledgementMode)
+        return basicConsume(queueName, options: options, arguments: arguments, handler: handler)
+    }
+
+    func basicConsume(_ queueName: String, options: RMQBasicConsumeOptions,
+                      handler: @escaping RMQConsumerDeliveryHandler) -> RMQConsumer {
         lastReceivedBasicConsumeOptions = options
         lastReceivedBasicConsumeBlock = handler
         if let msg = stubbedBasicConsumeError {
@@ -217,7 +271,8 @@
         return consumer!
     }
 
-    func basicConsume(_ queueName: String, options: RMQBasicConsumeOptions = [], arguments: RMQTable, handler: @escaping RMQConsumerDeliveryHandler) -> RMQConsumer {
+    func basicConsume(_ queueName: String, options: RMQBasicConsumeOptions = [],
+                      arguments: RMQTable, handler: @escaping RMQConsumerDeliveryHandler) -> RMQConsumer {
         lastReceivedBasicConsumeOptions = options
         lastReceivedBasicConsumeBlock = handler
         if let msg = stubbedBasicConsumeError {
@@ -243,7 +298,8 @@
         lastReceivedBasicCancelConsumerTag = consumerTag
     }
 
-    func basicPublish(_ body: Data, routingKey: String, exchange: String, properties: [RMQValue], options: RMQBasicPublishOptions) -> NSNumber {
+    func basicPublish(_ body: Data, routingKey: String, exchange: String, properties: [RMQValue],
+                      options: RMQBasicPublishOptions) -> NSNumber {
         lastReceivedBasicPublishMessage = body
         lastReceivedBasicPublishRoutingKey = routingKey
         lastReceivedBasicPublishExchange = exchange
@@ -252,7 +308,8 @@
         return publishReturn as NSNumber
     }
 
-    func basicGet(_ queue: String, options: RMQBasicGetOptions, completionHandler: @escaping RMQConsumerDeliveryHandler) {
+    func basicGet(_ queue: String, options: RMQBasicGetOptions,
+                  completionHandler: @escaping RMQConsumerDeliveryHandler) {
         lastReceivedBasicGetQueue = queue
         lastReceivedBasicGetOptions = options
         lastReceivedBasicGetCompletionHandler = completionHandler

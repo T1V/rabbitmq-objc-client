@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,12 +49,12 @@
 // under either the MPL or the ASL License.
 // ---------------------------------------------------------------------------
 
-@objc class RecoverySpy : NSObject, RMQConnectionRecovery {
+@objc class RecoverySpy: NSObject, RMQConnectionRecovery {
     var interval: NSNumber! = 0.1
     var connectionPassedToRecover: RMQStarter?
     var allocatorPassedToRecover: RMQChannelAllocator?
     var errorPassedToRecover: Error?
-    
+
     func recover(_ connection: RMQStarter!, channelAllocator allocator: RMQChannelAllocator!, error: Error!) {
         connectionPassedToRecover = connection
         allocatorPassedToRecover = allocator

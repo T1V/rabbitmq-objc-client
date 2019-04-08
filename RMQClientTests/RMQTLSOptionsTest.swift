@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -64,7 +64,7 @@ class RMQTLSOptionsTest: XCTestCase {
     func testAuthMechanismIsExternalWhenPKCS12Provided() {
         let opts = RMQTLSOptions(peerName: "soakalmost",
                                  verifyPeer: true,
-                                 pkcs12: CertificateFixtures.guestBunniesP12() as Data,
+                                 pkcs12: fixtureClientCertificatePKCS12() as Data,
                                  pkcs12Password: "bar")
         XCTAssertEqual("EXTERNAL", opts.authMechanism())
     }
@@ -72,8 +72,8 @@ class RMQTLSOptionsTest: XCTestCase {
     func testDelegatesCertificates() {
         let opts = RMQTLSOptions(peerName: "localghost",
                                  verifyPeer: true,
-                                 pkcs12: CertificateFixtures.guestBunniesP12() as Data,
-                                 pkcs12Password: "bunnies")
+                                 pkcs12: fixtureClientCertificatePKCS12() as Data,
+                                 pkcs12Password: CertificateFixtures.password)
         XCTAssertEqual(1, try! opts.certificates().count)
     }
 
@@ -96,4 +96,11 @@ class RMQTLSOptionsTest: XCTestCase {
         XCTAssertFalse(opts.useTLS)
     }
 
+    fileprivate func fixtureClientCertificatePKCS12() -> Data {
+        do {
+            return try CertificateFixtures.guestBunniesP12()
+        } catch {
+            fatalError("Failed to load the fixture client certificate")
+        }
+    }
 }

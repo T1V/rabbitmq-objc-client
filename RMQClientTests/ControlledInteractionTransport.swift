@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -57,10 +57,11 @@ enum TestDoubleTransportError: Error {
 }
 
 @objc class ControlledInteractionTransport: NSObject, RMQTransport {
-    var delegate: RMQTransportDelegate? = nil
+    // swiftlint:disable weak_delegate
+    var delegate: RMQTransportDelegate?
     var connected = false
     var outboundData: [Data] = []
-    var readCallbacks: Array<(Data) -> Void> = []
+    var readCallbacks: [(Data) -> Void] = []
     var callbackIndexToRunNext = 0
     var stubbedToThrowErrorOnConnect: String?
 
@@ -71,7 +72,7 @@ enum TestDoubleTransportError: Error {
             connected = true
         }
     }
-    
+
     func close() {
         connected = false
         delegate?.transport(self, disconnectedWithError: nil)
@@ -83,6 +84,10 @@ enum TestDoubleTransportError: Error {
 
     func isConnected() -> Bool {
         return connected
+    }
+
+    func isDisconnected() -> Bool {
+        return !self.isConnected()
     }
 
     func readFrame(_ complete: @escaping (Data) -> Void) {

@@ -4,13 +4,13 @@
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017 Pivotal Software, Inc.
+// Copyright 2017-2019 Pivotal Software, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//    https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -92,7 +92,8 @@ class PublisherConfirmationTest: XCTestCase {
         let ch = ChannelHelper.makeChannel(1, confirmations: confirmations)
 
         XCTAssertEqual(0, confirmations.publicationCount)
-        ch.basicPublish("hi there".data(using: String.Encoding.utf8)!, routingKey: "", exchange: "", properties: [], options: [])
+        ch.basicPublish("hi there".data(using: String.Encoding.utf8)!, routingKey: "", exchange: "",
+                        properties: [], options: [])
         XCTAssertEqual(1, confirmations.publicationCount)
     }
 
@@ -130,11 +131,11 @@ class PublisherConfirmationTest: XCTestCase {
 
         ch.basicPublish(Data(), routingKey: "", exchange: "", properties: [], options: [])
 
-        ch.afterConfirmed { (acks, nacks) in }
+        ch.afterConfirmed { (_, _) in }
         XCTAssertEqual(30, confirmations.lastReceivedTimeout)
 
-        ch.afterConfirmed(123) { (acks, nacks) in }
+        ch.afterConfirmed(123) { (_, _) in }
         XCTAssertEqual(123, confirmations.lastReceivedTimeout)
     }
-    
+
 }
