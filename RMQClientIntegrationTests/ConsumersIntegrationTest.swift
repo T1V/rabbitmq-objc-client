@@ -1,10 +1,10 @@
 // This source code is dual-licensed under the Mozilla Public License ("MPL"),
-// version 1.1 and the Apache License ("ASL"), version 2.0.
+// version 2.0 and the Apache License ("ASL"), version 2.0.
 //
 // The ASL v2.0:
 //
 // ---------------------------------------------------------------------------
-// Copyright 2017-2019 Pivotal Software, Inc.
+// Copyright 2017-2020 VMware, Inc. or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,23 +19,14 @@
 // limitations under the License.
 // ---------------------------------------------------------------------------
 //
-// The MPL v1.1:
+// The MPL v2.0:
 //
 // ---------------------------------------------------------------------------
-// The contents of this file are subject to the Mozilla Public License
-// Version 1.1 (the "License"); you may not use this file except in
-// compliance with the License. You may obtain a copy of the License at
-// https://www.mozilla.org/MPL/
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
-// Software distributed under the License is distributed on an "AS IS"
-// basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the
-// License for the specific language governing rights and limitations
-// under the License.
-//
-// The Original Code is RabbitMQ
-//
-// The Initial Developer of the Original Code is Pivotal Software, Inc.
-// All Rights Reserved.
+// Copyright (c) 2007-2020 VMware, Inc. or its affiliates.  All rights reserved.
 //
 // Alternatively, the contents of this file may be used under the terms
 // of the Apache Standard license (the "ASL License"), in which case the
@@ -61,10 +52,11 @@ class ConsumersIntegrationTest: XCTestCase {
     //
 
     func testQueueAndConsumerDSLManualAcknowledgementMode() {
-        let conn = RMQConnection()
+        let testName = "testQueueAndConsumerDSLManualAcknowledgementMode"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         let ch = conn.createChannel()
-        let x = ch.fanout("objc.tests.fanouts.testQueueAndConsumerDSLManualAcknowledgementMode",
+        let x = ch.fanout("objc.tests.fanouts.\(testName)",
                           options: [])
 
         let cons = ch.queue("objc.tests.queueAndConsumerDSLManualAckMode",
@@ -81,12 +73,13 @@ class ConsumersIntegrationTest: XCTestCase {
     }
 
     func testQueueAndConsumerDSLExclusiveConsumerWithAutomaticAcknowledgementMode() {
-        let conn = RMQConnection()
+        let testName = "testQueueAndConsumerDSLExclusiveConsumerWithAutomaticAcknowledgementMode"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         let ch = conn.createChannel()
-        let x = ch.fanout("objc.tests.fanouts.testQueueAndConsumerDSLExclusiveConsumer", options: [])
+        let x = ch.fanout("objc.tests.fanouts.\(testName)", options: [])
 
-        let cons = ch.queue("objc.tests.queueAndConsumerDSLExclusiveConsumerWithAutomaticAckMode",
+        let cons = ch.queue("objc.tests.queues.\(testName)",
                             options: [.exclusive])
             .bind(x)
             // no manual acks
@@ -101,7 +94,8 @@ class ConsumersIntegrationTest: XCTestCase {
     }
 
     func testNegativeAcknowledgementOfMultipleDeliveries() {
-        let conn = RMQConnection()
+        let testName = "testNegativeAcknowledgementOfMultipleDeliveries"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         let ch = conn.createChannel()
         let semaphore = DispatchSemaphore(value: 0)
@@ -130,7 +124,8 @@ class ConsumersIntegrationTest: XCTestCase {
     }
 
     func testNegativeAcknowledgementWithRequeueingRedelivers() {
-        let conn = RMQConnection()
+        let testName = "testNegativeAcknowledgementWithRequeueingRedelivers"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         let ch = conn.createChannel()
         let q = ch.queue("", options: [.autoDelete, .exclusive])
@@ -156,7 +151,8 @@ class ConsumersIntegrationTest: XCTestCase {
     }
 
     func testNegativeAcknowledgementWithRequeueingRedeliversToADifferentConsumer() {
-        let conn = RMQConnection()
+        let testName = "testNegativeAcknowledgementWithRequeueingRedeliversToADifferentConsumer"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         let ch = conn.createChannel()
         let q = ch.queue("", options: [.autoDelete, .exclusive])
@@ -193,7 +189,8 @@ class ConsumersIntegrationTest: XCTestCase {
     }
 
     func testManualAcknowledgementOfMultipleDeliveries() {
-        let conn = RMQConnection()
+        let testName = "testManualAcknowledgementOfMultipleDeliveries"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         let ch = conn.createChannel()
         let x = ch.fanout("amq.fanout", options: [.durable])
@@ -231,7 +228,8 @@ class ConsumersIntegrationTest: XCTestCase {
     //
 
     func testMessageProperties() {
-        let conn = RMQConnection()
+        let testName = "testMessageProperties"
+        let conn = IntegrationHelper.createNamedConnection(testName)
         conn.start()
         defer { conn.blockingClose() }
 

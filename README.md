@@ -4,23 +4,33 @@
 
 A RabbitMQ client, largely influenced by [Bunny](https://github.com/ruby-amqp/bunny).
 
-Test-driven from Swift and implemented in Objective-C, to cover both Objective-C and Swift
-codebases before the ecosystem converts to 95+% Swift.
+Test-driven from Swift and implemented in Objective-C.
 
+## Supported iOS and macOS Versions
+
+This library currently targets iOS 11+ and macOS 10.12+.
+
+## Dependencies
+
+This library depends on
+
+ * [CocoaAsyncSocket](https://cocoapods.org/pods/CocoaAsyncSocket)
+ * [JKVValue](https://cocoapods.org/pods/JKVValue)
 
 ## Installation with [Carthage](https://github.com/Carthage/Carthage)
 
 1. Create a Cartfile with the following line:
 
-   ```
-   github "rabbitmq/rabbitmq-objc-client" ~> 0.10.0
-   ```
+ ```
+ github "rabbitmq/rabbitmq-objc-client" "v0.11.0"
+ ```
 
-   Run Carthage, for example in a new project:
+Run Carthage, for example in a new project:
 
-   ```
-   carthage bootstrap
-   ```
+ ```
+ carthage bootstrap
+ ```
+
 1. In your Xcode project, in the **Build Phases** section of your target, open up **Link
    Binary With Libraries**. Now drag e.g. `Carthage/Build/iOS/RMQClient.framework`
    (choose Mac for OSX) into this list.
@@ -34,7 +44,7 @@ codebases before the ecosystem converts to 95+% Swift.
 1. Add the following to your Podfile:
 
    ```
-   pod 'RMQClient', '~> 0.10.0'
+   pod 'RMQClient', '~> 0.11.0'
    ```
    We recommend adding `use_frameworks!` to enable modular imports (Objective-C only).
 1. Run `pod install`.
@@ -113,8 +123,10 @@ See [the tutorials](http://www.rabbitmq.com/getstarted.html) for more detailed i
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 
-## License
+## License and Copyright
+
+(c) 2016-2020 VMware, Inc. or its affiliates
 
 This package, the RabbitMQ Objective-C client library, is
-dual-licensed under the Mozilla Public License 1.1 ("MPL") and the
+dual-licensed under the Mozilla Public License 2.0 ("MPL") and the
 Apache License version 2 ("ASL").
